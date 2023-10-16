@@ -6,6 +6,8 @@ from libs.event.qqevent import onkeyword,oncommand
 import requests
 
 BASEURL = "http://127.0.0.1:5700"
+firstPlayer=None
+lastJoinedPlayer=None
 def send(gid: int, text: str):
     d = {"message": text, "group_id": gid}
     requests.post(f"{BASEURL}/send_group_msg", data=d)
@@ -55,12 +57,12 @@ class Monster:
         self.judu=0
         self.t=1
         
-firstPlayer=None
-lastJoinedPlayer=None
+
         
 class Player:
      
      def __init__(self,id):
+         global lastJoinedPlayer
          self.id=id
          self.att=0
          self.diceList=[]
@@ -100,6 +102,8 @@ lock=False
 @oncommand(promat=["."],cmd=["开始游戏"])
 def newgame(n):
     try:
+        global firstPlayer
+        global lastJoinedPlayer
         m=Monster(40,40)
         if firstPlayer == None:
             send(gid=n.group_id,text="房间内没有玩家！")
@@ -114,29 +118,33 @@ def newgame(n):
 @oncommand(promat=["."],cmd=["新建游戏"])
 def handleClear(n):
     try:
+        global firstPlayer
+        global lastJoinedPlayer
         firstPlayer=None
         lastJoinedPlayer=None
         m=None
         playL={}
         actorid=None
         lock=False
-        send(gid=group_id,"旧的游戏已删除 新游戏已创建")
+        send(gid=n.group_id,text="旧的游戏已删除 新游戏已创建")
     except Exception as e:
         print(e)
     
 @oncommand(promat=["."],cmd=["加入游戏"])
 def handleClear(n):
-   try: 
+    try:
+        global firstPlayer
+        global lastJoinedPlayer
         if lock:
-            send(gid=group_id,"对局已开始")
+            send(gid=n.group_id,text="对局已开始")
             return
         player=Player(n.sender.user_id)    
         playL[n.sender.user_id]=player
         lastJoinedPlayer=player
         if firstPlayer == None:
             firstPlayer = player
-        send(gid=group_id,"加入成功")
-   except Exception as e:
+        send(gid=n.group_id,text="加入成功")
+    except Exception as e:
         print(e)
         
 
@@ -146,9 +154,9 @@ def throw(n):
     try:
         if actorid == n.sender.user_id:
             list = playL[n.sender.user_id].createDice()
-            send(gid=group_id,f"{actorid}击败恶龙")
+            send(gid=n.group_id,text=f"{actorid}击败恶龙")
         else:   
-            send(gid=group_id,"当前不是你的回合！")
+            send(gid=n.group_id,text="当前不是你的回合！")
     except Exception as e:
         print(e)
         
@@ -160,22 +168,22 @@ def throw(n):
         player=playL[n.sender.user_id]
         if actorid == n.sender.user_id:
             if n.arg in player.diceList:
-                send(gid=group_id,effect(n.arg,m,player)+m.toString())
+                send(gid=n.group_id,text=effect(n.arg,m,player)+m)
                 if m.hp<=0:
-                    send(gid=group_id,"怪物已被打败！")
+                    send(gid=n.group_id,text="怪物已被打败！")
                     return
                 actorid = player.next.id
             else:
-                send(gid=group_id,"没有这个骰子！")
+                send(gid=n.group_id,text="没有这个骰子！")
         else:   
-            send(gid=group_id,"当前不是你的回合！")
+            send(gid=n.group_id,text="当前不是你的回合！")
     except Exception as e:
         print(e)
         
 @oncommand(promat=["."],cmd=["玩家列表"])
 def throw(n):  
     try:
-        send(gid=group_id,playL)
+        send(gid=n.group_id,text=playL)
     except Exception as e:
         print(e)
         
@@ -183,6 +191,6 @@ def throw(n):
 def throw(n):  
     try:
         s=m.toString()
-        send(gid=group_id,s)
+        send(gid=n.group_id,text=s)
     except Exception as e:
         print(e)
