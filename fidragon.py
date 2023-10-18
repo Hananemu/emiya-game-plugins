@@ -99,23 +99,23 @@ lock=False
 
 
 
-@oncommand(promat=["."],cmd=["开始游戏"])
+@oncommand(promat=["."],cmd=["开龙趴"])
 def newgame(n):
     try:
         global firstPlayer
         global lastJoinedPlayer
         m=Monster(40,40)
         if firstPlayer == None:
-            send(gid=n.group_id,text="房间内没有玩家！")
+            send(gid=n.group_id,text="房间里比你的试卷还空！")
             return
         firstPlayer.next=lastJoinedPlayer
         actorid=firstPlayer.id
-        send(gid=n.group_id,text="游戏已经开始")
+        send(gid=n.group_id,text="游戏已经在润了")
         lock=True
     except Exception as e:
         print(e)
 
-@oncommand(promat=["."],cmd=["新建游戏"])
+@oncommand(promat=["."],cmd=["重开"])
 def handleClear(n):
     try:
         global firstPlayer
@@ -126,17 +126,17 @@ def handleClear(n):
         playL={}
         actorid=None
         lock=False
-        send(gid=n.group_id,text="旧的游戏已删除 新游戏已创建")
+        send(gid=n.group_id,text="旧的游戏像你未来的人生一样重开了")
     except Exception as e:
         print(e)
     
-@oncommand(promat=["."],cmd=["加入游戏"])
+@oncommand(promat=["."],cmd=["龙趴，启动"])
 def handleClear(n):
     try:
         global firstPlayer
         global lastJoinedPlayer
         if lock:
-            send(gid=n.group_id,text="对局已开始")
+            send(gid=n.group_id,text="龙趴已开始")
             return
         player=Player(n.sender.user_id)    
         playL[n.sender.user_id]=player
@@ -194,3 +194,9 @@ def throw(n):
         send(gid=n.group_id,text=s)
     except Exception as e:
         print(e)
+
+@oncommand(promat=["."],cmd=["debug"])
+async def debug(n):
+    try:
+        msg="当前玩家："+actorid
+        await n.actioner.callApi("")
