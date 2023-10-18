@@ -4,13 +4,10 @@
 import random
 from libs.event.qqevent import onkeyword,oncommand
 import requests
+from libs.Logger import logInfo
 
-BASEURL = "http://127.0.0.1:5700"
 firstPlayer=None
 lastJoinedPlayer=None
-def send(gid: int, text: str):
-    d = {"message": text, "group_id": gid}
-    requests.post(f"{BASEURL}/send_group_msg", data=d)
 
 class Monster:
     
@@ -61,35 +58,38 @@ class Monster:
         
 class Player:
      
-     def __init__(self,id):
-         global lastJoinedPlayer
-         self.id=id
-         self.att=0
-         self.diceList=[]
-         self.next=lastJoinedPlayer
+    def __init__(self,id):
+        global lastJoinedPlayer
+        self.id=id
+        self.att=0
+        self.diceList=[]
+        self.next=lastJoinedPlayer
      
-     def creatDice(self):
-         self.diceList=[random.randint(1, 6) for i in range(3) ] 
-         return self.diceList 
+    def creatDice(self):
+        self.diceList=[random.randint(1, 6) for i in range(3) ] 
+        return self.diceList 
+
+    def toString(self):
+        return self.id+"当前的攻击力是："+self.att
          
          
 def effect(num,m,p):
-     if num==1:
-         m.debuff=100
-         r="怪物受到伤害提升"
-     elif num==2:
-         m.judu=150
-         r="怪物受到额外伤害"   
-     elif  num==3:
-         r=m.beAtt(fatt=150)
-     elif num==4:
-         r=m.beAtt(tatt=200)
-     elif num==5:
-         m.t*=2
-         r=m.beAtt(fatt=200)+"造成伤害翻倍"
-     elif num==6:
-         p.att+=100
-         r=m.beAtt(fatt=p.att)   
+    if num==1:
+        m.debuff=100
+        r="怪物受到伤害提升"
+    elif num==2:
+        m.judu=150
+        r="怪物受到额外伤害"   
+    elif  num==3:
+        r=m.beAtt(fatt=150)
+    elif num==4:
+        r=m.beAtt(tatt=200)
+    elif num==5:
+        m.t*=2
+        r=m.beAtt(fatt=200)+"造成伤害翻倍"
+    elif num==6:
+        p.att+=100
+        r=m.beAtt(fatt=p.att)   
 
 
 m=None
@@ -100,23 +100,23 @@ lock=False
 
 
 @oncommand(promat=["."],cmd=["开龙趴"])
-def newgame(n):
+async def newgame(n):
     try:
         global firstPlayer
         global lastJoinedPlayer
         m=Monster(40,40)
         if firstPlayer == None:
-            send(gid=n.group_id,text="房间里比你的试卷还空！")
+            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="房间里比你的试卷还空！")
             return
         firstPlayer.next=lastJoinedPlayer
         actorid=firstPlayer.id
-        send(gid=n.group_id,text="游戏已经在润了")
+        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="游戏已经在润了")
         lock=True
     except Exception as e:
-        print(e)
+        logInfo(e)
 
 @oncommand(promat=["."],cmd=["重开"])
-def handleClear(n):
+async def handleClear(n):
     try:
         global firstPlayer
         global lastJoinedPlayer
@@ -126,77 +126,88 @@ def handleClear(n):
         playL={}
         actorid=None
         lock=False
-        send(gid=n.group_id,text="旧的游戏像你未来的人生一样重开了")
+        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="旧的游戏像你未来的人生一样重开了")
     except Exception as e:
-        print(e)
+        logInfo(e)
     
 @oncommand(promat=["."],cmd=["龙趴，启动"])
-def handleClear(n):
+async def handleClear(n):
     try:
         global firstPlayer
         global lastJoinedPlayer
         if lock:
-            send(gid=n.group_id,text="龙趴已开始")
+            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="龙趴已开始")
             return
         player=Player(n.sender.user_id)    
         playL[n.sender.user_id]=player
         lastJoinedPlayer=player
         if firstPlayer == None:
             firstPlayer = player
-        send(gid=n.group_id,text="加入成功")
+        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="加入成功")
     except Exception as e:
-        print(e)
+        logInfo(e)
         
 
     
 @oncommand(promat=["."],cmd=["丢骰子"])
-def throw(n):  
+async def throw(n):  
     try:
         if actorid == n.sender.user_id:
             list = playL[n.sender.user_id].createDice()
-            send(gid=n.group_id,text=f"{actorid}击败恶龙")
+            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=)f"{actorid}击败恶龙")
         else:   
-            send(gid=n.group_id,text="当前不是你的回合！")
+            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="当前不是你的回合！现在的玩家是"+actorid)
     except Exception as e:
-        print(e)
+        logInfo(e)
         
 @oncommand(promat=["."],cmd=["选择"])
-def throw(n):  
+async def choose(n):  
     try:
         n.arg=n.arg.replace(" ")
         n.arg=int(n.arg)
         player=playL[n.sender.user_id]
         if actorid == n.sender.user_id:
             if n.arg in player.diceList:
-                send(gid=n.group_id,text=effect(n.arg,m,player)+m)
+                await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=effect(n.arg,m,player)+m)
                 if m.hp<=0:
-                    send(gid=n.group_id,text="怪物已被打败！")
+                    await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="怪物已被打败！")
                     return
                 actorid = player.next.id
+                await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="下一个玩家："+actorid)
             else:
-                send(gid=n.group_id,text="没有这个骰子！")
+                await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="没有这个骰子！")
         else:   
-            send(gid=n.group_id,text="当前不是你的回合！")
+            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="当前不是你的回合！现在的玩家是"+actorid)
     except Exception as e:
-        print(e)
+        logInfo(e)
         
-@oncommand(promat=["."],cmd=["玩家列表"])
-def throw(n):  
+@oncommand(promat=["."],cmd=["查房"])
+async def throw(n):  
     try:
-        send(gid=n.group_id,text=playL)
+        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=playL)
     except Exception as e:
-        print(e)
+        logInfo(e)
         
 @oncommand(promat=["."],cmd=["怪兽状态"])
-def throw(n):  
+async def throw(n):  
     try:
         s=m.toString()
-        send(gid=n.group_id,text=s)
+        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=s)
     except Exception as e:
-        print(e)
+        logInfo(e)
 
 @oncommand(promat=["."],cmd=["debug"])
 async def debug(n):
     try:
         msg="当前玩家："+actorid
-        await n.actioner.callApi("")
+        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=msg)
+    except Exception as e:
+        logInfo(e)
+
+@oncommand(promat=["."],cmd=["帮助"])
+async def debug(n):
+    try:
+        msg="开龙趴-Build a room\n重开-Replay\n龙趴，启动-Start\n丢骰子-Throw dice\n选择-Choose dice\n查房-Player list\n怪兽状态-Dragon state\ndebug-Debug(actorid)"
+        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=msg)
+    except Exception as e:
+        logInfo(e)
