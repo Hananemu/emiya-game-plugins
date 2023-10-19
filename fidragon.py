@@ -106,11 +106,11 @@ async def newgame(n):
         global lastJoinedPlayer
         m=Monster(40,40)
         if firstPlayer == None:
-            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="房间里比你的试卷还空！")
+            await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="房间里比你的试卷还空！")
             return
         firstPlayer.next=lastJoinedPlayer
         actorid=firstPlayer.id
-        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="游戏已经在润了")
+        await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="游戏已经在润了")
         lock=True
     except Exception as e:
         logInfo(e)
@@ -126,7 +126,7 @@ async def handleClear(n):
         playL={}
         actorid=None
         lock=False
-        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="旧的游戏像你未来的人生一样重开了")
+        await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="旧的游戏像你未来的人生一样重开了")
     except Exception as e:
         logInfo(e)
     
@@ -136,14 +136,14 @@ async def handleClear(n):
         global firstPlayer
         global lastJoinedPlayer
         if lock:
-            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="龙趴已开始")
+            await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="龙趴已开始")
             return
         player=Player(n.sender.user_id)    
         playL[n.sender.user_id]=player
         lastJoinedPlayer=player
         if firstPlayer == None:
             firstPlayer = player
-        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="加入成功")
+        await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="加入成功")
     except Exception as e:
         logInfo(e)
         
@@ -154,9 +154,9 @@ async def throw(n):
     try:
         if actorid == n.sender.user_id:
             list = playL[n.sender.user_id].createDice()
-            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=)f"{actorid}击败恶龙")
+            await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message=)f"{actorid}击败恶龙")
         else:   
-            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="当前不是你的回合！现在的玩家是"+actorid)
+            await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="当前不是你的回合！现在的玩家是"+actorid)
     except Exception as e:
         logInfo(e)
         
@@ -168,23 +168,23 @@ async def choose(n):
         player=playL[n.sender.user_id]
         if actorid == n.sender.user_id:
             if n.arg in player.diceList:
-                await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=effect(n.arg,m,player)+m)
+                await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message=effect(n.arg,m,player)+m)
                 if m.hp<=0:
-                    await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="怪物已被打败！")
+                    await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="怪物已被打败！")
                     return
                 actorid = player.next.id
-                await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="下一个玩家："+actorid)
+                await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="下一个玩家："+actorid)
             else:
-                await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="没有这个骰子！")
+                await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="没有这个骰子！")
         else:   
-            await n.actioner.callAPI("send_group_message",group_id=n.getID(),message="当前不是你的回合！现在的玩家是"+actorid)
+            await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message="当前不是你的回合！现在的玩家是"+actorid)
     except Exception as e:
         logInfo(e)
         
 @oncommand(promat=["."],cmd=["查房"])
 async def throw(n):  
     try:
-        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=playL)
+        await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message=playL)
     except Exception as e:
         logInfo(e)
         
@@ -192,7 +192,7 @@ async def throw(n):
 async def throw(n):  
     try:
         s=m.toString()
-        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=s)
+        await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message=s)
     except Exception as e:
         logInfo(e)
 
@@ -200,7 +200,7 @@ async def throw(n):
 async def debug(n):
     try:
         msg="当前玩家："+actorid
-        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=msg)
+        await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message=msg)
     except Exception as e:
         logInfo(e)
 
@@ -208,6 +208,6 @@ async def debug(n):
 async def help(n):
     try:
         msg="开龙趴-Build a room\n重开-Replay\n龙趴，启动-Start\n丢骰子-Throw dice\n选择-Choose dice\n查房-Player list\n怪兽状态-Dragon state\ndebug-Debug(actorid)"
-        await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=msg)
+        await n.actioner.callAPI("send_group_message",group_id=n.netpackage.getID(),message=msg)
     except Exception as e:
         logInfo(e)
