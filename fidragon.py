@@ -205,7 +205,7 @@ async def debug(n):
         logInfo(e)
 
 @oncommand(promat=["."],cmd=["帮助"])
-async def debug(n):
+async def help(n):
     try:
         msg="开龙趴-Build a room\n重开-Replay\n龙趴，启动-Start\n丢骰子-Throw dice\n选择-Choose dice\n查房-Player list\n怪兽状态-Dragon state\ndebug-Debug(actorid)"
         await n.actioner.callAPI("send_group_message",group_id=n.getID(),message=msg)
