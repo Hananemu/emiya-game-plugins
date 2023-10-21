@@ -8,15 +8,16 @@ from libs.Logger import logInfo
 
 firstPlayer=None
 lastJoinedPlayer=None
+m=None
+playL={}
+actorid=None
+lock=False
 
 class Monster:
     
     def __init__(self,m,n):
         self.hp=100*n
         self.defend=100*m
-        
-        
-        
         self.debuff=0
         self.judu=0
         self.t=1
@@ -43,10 +44,8 @@ class Monster:
         return r
         
     def toString(self):
+        global m
         return "怪物当前状态：\n血量："+m.hp+"\n防御："+m.defend+"\ndebuff："+m.debuff+"\n剧毒："+m.judu+"\n.受伤倍率："+m.t   
-                    
-    
-    
     
     def reInit(self):
         
@@ -65,15 +64,19 @@ class Player:
         self.diceList=[]
         self.next=lastJoinedPlayer
      
-    def creatDice(self):
+    def createDice(self):
         self.diceList=[random.randint(1, 6) for i in range(3) ] 
         return self.diceList 
 
     def toString(self):
         return self.id+"当前的攻击力是："+self.att
+
+    def __str__(self):
+        return str(self.id)
          
          
 def effect(num,m,p):
+    r="None!"
     if num==1:
         m.debuff=100
         r="怪物受到伤害提升"
@@ -89,13 +92,10 @@ def effect(num,m,p):
         r=m.beAtt(fatt=200)+"造成伤害翻倍"
     elif num==6:
         p.att+=100
-        r=m.beAtt(fatt=p.att)   
+        r=m.beAtt(fatt=p.att)
+    return r
 
 
-m=None
-playL={}
-actorid=None
-lock=False
 
 
 
@@ -104,13 +104,18 @@ async def newgame(n):
     try:
         global firstPlayer
         global lastJoinedPlayer
+        global m
+        global actorid
+        global lock
         m=Monster(40,40)
         if firstPlayer == None:
-            await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="房间里比你的试卷还空！")
+            await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message="房间里比你的试卷还空！")
             return
         firstPlayer.next=lastJoinedPlayer
         actorid=firstPlayer.id
-        await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="游戏已经在润了")
+        await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message="游戏已经在润了")
+        await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=f"当前是{actorid}的回合！")
+
         lock=True
     except Exception as e:
         logInfo(e)
@@ -120,13 +125,17 @@ async def handleClear(n):
     try:
         global firstPlayer
         global lastJoinedPlayer
+        global m
+        global playL
+        global actorid
+        global lock
         firstPlayer=None
         lastJoinedPlayer=None
         m=None
         playL={}
         actorid=None
         lock=False
-        await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="旧的游戏像你未来的人生一样重开了")
+        await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message="旧的游戏像你未来的人生一样重开了")
     except Exception as e:
         logInfo(e)
     
@@ -135,72 +144,90 @@ async def handleClear(n):
     try:
         global firstPlayer
         global lastJoinedPlayer
+        global playL
         if lock:
-            await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="龙趴已开始")
+            await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message="龙趴已开始")
             return
         player=Player(n.netpackage.sender.user_id)    
         playL[n.netpackage.sender.user_id]=player
         lastJoinedPlayer=player
         if firstPlayer == None:
             firstPlayer = player
-        await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="加入成功")
+        await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message="加入成功")
     except Exception as e:
         logInfo(e)
         
 
     
 @oncommand(promat=["."],cmd=["丢骰子"])
-async def throw(n):  
+async def throw(n):
+    global actorid
+    global playL
+    player = playL[n.netpackage.sender.user_id]
     try:
-        if actorid == n.netpackage.sender.user_id:
-            list = playL[n.netpackage.sender.user_id].createDice()
-            await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message=)f"{actorid}击败恶龙")
+        if not player.diceList:
+            await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message="你已经丢过骰子了！请选择："+str(player.diceList))
+        else if actorid == n.netpackage.sender.user_id:
+            l = player.createDice()
+            await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=str(l))
         else:   
-            await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="当前不是你的回合！现在的玩家是"+actorid)
+            await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=f"当前不是你的回合！现在的玩家是{actorid}")
     except Exception as e:
         logInfo(e)
         
 @oncommand(promat=["."],cmd=["选择"])
-async def choose(n):  
+async def choose(n):
+    global playL
+    global m
+    global actorid
     try:
-        n.netpackage.arg=n.netpackage.arg.replace(" ")
-        n.netpackage.arg=int(n.netpackage.arg)
+        #logInfo(str(n.netpackage.arg))
+        n.netpackage.arg=n.netpackage.arg.replace(" ","")
+        #choice=int(n.netpackage.arg)
+        choice=n.netpackage.arg
         player=playL[n.netpackage.sender.user_id]
         if actorid == n.netpackage.sender.user_id:
-            if n.netpackage.arg in player.diceList:
-                await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message=effect(n.netpackage.arg,m,player)+m)
+            """
+            bug：查不出来骰子
+            """
+            if choice in player.diceList:
+                await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=effect(choice,m,player)+m.toString())
                 if m.hp<=0:
-                    await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="怪物已被打败！")
+                    await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=f"怪物已被{actorid}打败！")
                     return
                 actorid = player.next.id
-                await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="下一个玩家："+actorid)
+                await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=f"下一个玩家：{actorid}")
             else:
-                await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="没有这个骰子！")
+                await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message="没有这个骰子！")
         else:   
-            await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message="当前不是你的回合！现在的玩家是"+actorid)
+            await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=f"当前不是你的回合！现在的玩家是{actorid}")
     except Exception as e:
         logInfo(e)
         
 @oncommand(promat=["."],cmd=["查房"])
-async def throw(n):  
+async def throw(n):
+    global playL
     try:
-        await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message=playL)
+        await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=playL)
     except Exception as e:
         logInfo(e)
         
 @oncommand(promat=["."],cmd=["怪兽状态"])
-async def throw(n):  
+async def throw(n):
+    global m
     try:
         s=m.toString()
-        await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message=s)
+        await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=s)
     except Exception as e:
         logInfo(e)
 
 @oncommand(promat=["."],cmd=["debug"])
 async def debug(n):
+    global actorid
     try:
-        msg="当前玩家："+actorid
-        await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message=msg)
+        msg="当前玩家："+str(actorid)
+        logInfo(actorid)
+        await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=msg)
     except Exception as e:
         logInfo(e)
 
@@ -208,6 +235,7 @@ async def debug(n):
 async def help(n):
     try:
         msg="开龙趴-Build a room\n重开-Replay\n龙趴，启动-Start\n丢骰子-Throw dice\n选择-Choose dice\n查房-Player list\n怪兽状态-Dragon state\ndebug-Debug(actorid)"
-        await n.callAPI("send_group_message",group_id=n.netpackage.getID(),message=msg)
+        test=await n.callAPI("send_group_msg",group_id=n.netpackage.getID(),message=msg)
+        logInfo(test)
     except Exception as e:
         logInfo(e)
